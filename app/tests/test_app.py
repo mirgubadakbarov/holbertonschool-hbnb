@@ -2,6 +2,86 @@ import unittest
 import json
 from app import app
 
+
+class TestReviewEndpoints(unittest.TestCase):
+    def setUp(self):
+        self.app = app.test_client()
+        self.app.testing = True
+
+        # Create a user and place for testing
+        self.user_id = self._create_user('testuser')
+        self.place_id = self._create_place('Test Place', 'A nice place', '123 Main St', 'host123')
+
+    def _create_user(self, username):
+        response = self.app.post('/users', data=json.dumps({
+            'username': username,
+            'email': f'{username}@example.com',
+            'first_name': 'Test',
+            'last_name': 'User'
+        }), content_type='application/json')
+        return response.json['id']
+
+    def _create_place(self, name, description, address, host_id):
+        response = self.app.post('/places', data=json.dumps({
+            'name': name,
+            'description': description,
+            'address': address,
+            'city_id': '1',  # Assuming city_id exists
+            'latitude': 40.7128,
+            'longitude': -74.0060,
+            'host_id': host_id,
+            'number_of_rooms': 2,
+            'number_of_bathrooms': 1,
+            'price_per_night': 150.0,
+            'max_guests': 4,
+            'amenity_ids': []
+        }), content_type='application/json')
+        return response.json['id']
+
+    def test_create_review(self):
+        response = self.app.post(f'/places/{self.place_id}/reviews', data=json.dumps({
+            'user_id': self.user_id,
+            'rating': 4,
+            'comment': 'Great place to stay!'
+        }), content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        self.assertIn('id', response.json)
+
+    def test_get_user_reviews(self):
+        self.test_create_review()  # Create a review for the user
+        response = self.app.get(f'/users/{self.user_id}/reviews')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.json) > 0)
+
+    def test_get_place_reviews(self):
+        self.test_create_review()  # Create a review for the place
+        response = self.app.get(f'/places/{self.place_id}/reviews')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.json) > 0)
+
+    def test_update_review(self):
+        create_response = self.app.post(f'/places/{self.place_id}/reviews', data=json.dumps({
+            'user_id': self.user_id,
+            'rating': 4,
+            'comment': 'Great place to stay!'
+        }), content_type='application/json')
+        review_id = create_response.json['id']
+        response = self.app.put(f'/reviews/{review_id}', data=json.dumps({
+            'comment': 'Updated comment'
+        }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['comment'], 'Updated comment')
+
+    def test_delete_review(self):
+        create_response = self.app.post(f'/places/{self.place_id}/reviews', data=json.dumps({
+            'user_id': self.user_id,
+            'rating': 4,
+            'comment': 'Great place to stay!'
+        }), content_type='application/json')
+        review_id = create_response.json['id']
+        response = self.app.delete(f'/reviews/{review_id}')
+        self.assertEqual(response.status_code, 204)
+
 class TestPlaceEndpoints(unittest.TestCase):
     def setUp(self):
         self.app = app.test_client()
