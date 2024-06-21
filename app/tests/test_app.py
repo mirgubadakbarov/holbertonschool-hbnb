@@ -2,10 +2,112 @@ import unittest
 import json
 from app import app
 
+class TestPlaceEndpoints(unittest.TestCase):
+    def setUp(self):
+        self.app = app.test_client()
+        self.app.testing = True
 
-import unittest
-import json
-from app import app
+        # Create a city and amenities for testing
+        self.city_id = self._create_city('Test City', 'US')
+        self.amenity_ids = [
+            self._create_amenity('Free WiFi'),
+            self._create_amenity('Swimming Pool')
+        ]
+
+    def _create_city(self, name, country_code):
+        response = self.app.post('/cities', data=json.dumps({
+            'name': name,
+            'country_code': country_code
+        }), content_type='application/json')
+        return response.json['id']
+
+    def _create_amenity(self, name):
+        response = self.app.post('/amenities', data=json.dumps({
+            'name': name
+        }), content_type='application/json')
+        return response.json['id']
+
+    def test_create_place(self):
+        response = self.app.post('/places', data=json.dumps({
+            'name': 'Test Place',
+            'description': 'A nice place',
+            'address': '123 Main St',
+            'city_id': self.city_id,
+            'latitude': 40.7128,
+            'longitude': -74.0060,
+            'host_id': 'host123',
+            'number_of_rooms': 2,
+            'number_of_bathrooms': 1,
+            'price_per_night': 150.0,
+            'max_guests': 4,
+            'amenity_ids': self.amenity_ids
+        }), content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        self.assertIn('id', response.json)
+
+    def test_get_places(self):
+        response = self.app.get('/places')
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_place(self):
+        create_response = self.app.post('/places', data=json.dumps({
+            'name': 'Test Place',
+            'description': 'A nice place',
+            'address': '123 Main St',
+            'city_id': self.city_id,
+            'latitude': 40.7128,
+            'longitude': -74.0060,
+            'host_id': 'host123',
+            'number_of_rooms': 2,
+            'number_of_bathrooms': 1,
+            'price_per_night': 150.0,
+            'max_guests': 4,
+            'amenity_ids': self.amenity_ids
+        }), content_type='application/json')
+        place_id = create_response.json['id']
+        response = self.app.get(f'/places/{place_id}')
+        self.assertEqual(response.status_code, 200)
+
+    def test_update_place(self):
+        create_response = self.app.post('/places', data=json.dumps({
+            'name': 'Test Place',
+            'description': 'A nice place',
+            'address': '123 Main St',
+            'city_id': self.city_id,
+            'latitude': 40.7128,
+            'longitude': -74.0060,
+            'host_id': 'host123',
+            'number_of_rooms': 2,
+            'number_of_bathrooms': 1,
+            'price_per_night': 150.0,
+            'max_guests': 4,
+            'amenity_ids': self.amenity_ids
+        }), content_type='application/json')
+        place_id = create_response.json['id']
+        response = self.app.put(f'/places/{place_id}', data=json.dumps({
+            'description': 'An updated description'
+        }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['description'], 'An updated description')
+
+    def test_delete_place(self):
+        create_response = self.app.post('/places', data=json.dumps({
+            'name': 'Test Place',
+            'description': 'A nice place',
+            'address': '123 Main St',
+            'city_id': self.city_id,
+            'latitude': 40.7128,
+            'longitude': -74.0060,
+            'host_id': 'host123',
+            'number_of_rooms': 2,
+            'number_of_bathrooms': 1,
+            'price_per_night': 150.0,
+            'max_guests': 4,
+            'amenity_ids': self.amenity_ids
+        }), content_type='application/json')
+        place_id = create_response.json['id']
+        response = self.app.delete(f'/places/{place_id}')
+        self.assertEqual(response.status_code, 204)
 
 class TestAmenityEndpoints(unittest.TestCase):
     def setUp(self):
