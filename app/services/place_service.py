@@ -1,8 +1,11 @@
 from app.models.place import Place
 
 class PlaceService:
+    places = []
+
     @staticmethod
     def create_place(data):
+        # Add logic to create a place with proper business rules
         place = Place(
             name=data['name'],
             description=data['description'],
@@ -17,5 +20,5 @@ class PlaceService:
             max_guests=data['max_guests'],
             amenities=data.get('amenities', [])
         )
-        # Save place to file (implement this part)
+        PlaceService.places.append(place)
         return place
