@@ -2,9 +2,12 @@ class DataManager(IPersistenceManager):
     def __init__(self):
         self.data = {
             'Country': {},
-            'City': {}
+            'City': {},
+            'Amenity': {},
+            'User': {},
+            'Place': {},
+            'Review': {}
         }
-        self._preload_countries()
 
     def _preload_countries(self):
         # Example of pre-loading countries
