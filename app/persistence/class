@@ -1,0 +1,6 @@
+class DataManager(IPersistenceManager):
+    
+
+    def get_all(self, entity_type):
+	data = self._read_storage()
+	return data.get(entity_type, {}).values()
