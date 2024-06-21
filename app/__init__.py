@@ -7,6 +7,82 @@ app = Flask(__name__)
 data_manager = DataManager()
 
 
+
+@app.route('/places/<place_id>/reviews', methods=['POST'])
+def create_review(place_id):
+    data = request.get_json()
+    required_fields = ['user_id', 'rating', 'comment']
+    for field in required_fields:
+        if field not in data:
+            abort(400, description=f"Missing required field: {field}")
+
+    # Validate rating
+    rating = data['rating']
+    if not (1 <= rating <= 5):
+        abort(400, description="Rating must be between 1 and 5")
+
+    # Check if place_id exists
+    if not data_manager.get(place_id, 'Place'):
+        abort(404, description="Place not found")
+
+    # Check if user_id exists
+    if not data_manager.get(data['user_id'], 'User'):
+        abort(404, description="User not found")
+
+    # Ensure user is not the host of the place
+    place = data_manager.get(place_id, 'Place')
+    if place['host_id'] == data['user_id']:
+        abort(400, description="Hosts cannot review their own places")
+
+    review = Review(place_id=place_id, **data)
+    data_manager.save(review)
+    return jsonify(review.to_dict()), 201
+
+@app.route('/users/<user_id>/reviews', methods=['GET'])
+def get_user_reviews(user_id):
+    reviews = [review for review in data_manager.get_all('Review') if review['user_id'] == user_id]
+    return jsonify(reviews), 200
+
+@app.route('/places/<place_id>/reviews', methods=['GET'])
+def get_place_reviews(place_id):
+    reviews = [review for review in data_manager.get_all('Review') if review['place_id'] == place_id]
+    return jsonify(reviews), 200
+
+@app.route('/reviews/<review_id>', methods=['GET'])
+def get_review(review_id):
+    review = data_manager.get(review_id, 'Review')
+    if not review:
+        abort(404, description="Review not found")
+    return jsonify(review), 200
+
+@app.route('/reviews/<review_id>', methods=['PUT'])
+def update_review(review_id):
+    data = request.get_json()
+    review = data_manager.get(review_id, 'Review')
+    if not review:
+        abort(404, description="Review not found")
+
+    # Validate rating if provided
+    if 'rating' in data:
+        rating = data['rating']
+        if not (1 <= rating <= 5):
+            abort(400, description="Rating must be between 1 and 5")
+
+    review_obj = Review(**review)
+    review_obj.update(data)
+    data_manager.save(review_obj)
+    return jsonify(review_obj.to_dict()), 200
+
+@app.route('/reviews/<review_id>', methods=['DELETE'])
+def delete_review(review_id):
+    review = data_manager.get(review_id, 'Review')
+    if not review:
+        abort(404, description="Review not found")
+    data_manager.delete(review_id, 'Review')
+    return '', 204
+
+
+
 @app.route('/places', methods=['POST'])
 def create_place():
     data = request.get_json()
