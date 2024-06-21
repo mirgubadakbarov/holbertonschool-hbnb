@@ -6,6 +6,57 @@ from app.models.city import City
 app = Flask(__name__)
 data_manager = DataManager()
 
+
+@app.route('/amenities', methods=['POST'])
+def create_amenity():
+    data = request.get_json()
+    name = data.get('name')
+
+    # Validation
+    if not name:
+        abort(400, description="Missing required fields")
+    
+    # Check for unique amenity name
+    existing_amenity = data_manager.get_by_field('Amenity', 'name', name)
+    if existing_amenity:
+        abort(409, description="Amenity name already exists")
+
+    amenity = Amenity(name)
+    data_manager.save(amenity)
+    return jsonify(amenity.to_dict()), 201
+
+@app.route('/amenities', methods=['GET'])
+def get_amenities():
+    amenities = data_manager.get_all('Amenity')
+    return jsonify(amenities), 200
+
+@app.route('/amenities/<amenity_id>', methods=['GET'])
+def get_amenity(amenity_id):
+    amenity = data_manager.get(amenity_id, 'Amenity')
+    if not amenity:
+        abort(404, description="Amenity not found")
+    return jsonify(amenity), 200
+
+@app.route('/amenities/<amenity_id>', methods=['PUT'])
+def update_amenity(amenity_id):
+    data = request.get_json()
+    amenity = data_manager.get(amenity_id, 'Amenity')
+    if not amenity:
+        abort(404, description="Amenity not found")
+
+    amenity_obj = Amenity(**amenity)
+    amenity_obj.update(data)
+    data_manager.save(amenity_obj)
+    return jsonify(amenity_obj.to_dict()), 200
+
+@app.route('/amenities/<amenity_id>', methods=['DELETE'])
+def delete_amenity(amenity_id):
+    amenity = data_manager.get(amenity_id, 'Amenity')
+    if not amenity:
+        abort(404, description="Amenity not found")
+    data_manager.delete(amenity_id, 'Amenity')
+    return '', 204
+
 @app.route('/countries', methods=['GET'])
 def get_countries():
     countries = data_manager.get_all('Country')
