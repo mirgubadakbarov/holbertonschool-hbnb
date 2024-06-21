@@ -2,6 +2,55 @@ import unittest
 import json
 from app import app
 
+
+import unittest
+import json
+from app import app
+
+class TestAmenityEndpoints(unittest.TestCase):
+    def setUp(self):
+        self.app = app.test_client()
+        self.app.testing = True
+
+    def test_create_amenity(self):
+        response = self.app.post('/amenities', data=json.dumps({
+            'name': 'Free WiFi'
+        }), content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        self.assertIn('id', response.json)
+
+    def test_get_amenities(self):
+        response = self.app.get('/amenities')
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_amenity(self):
+        create_response = self.app.post('/amenities', data=json.dumps({
+            'name': 'Swimming Pool'
+        }), content_type='application/json')
+        amenity_id = create_response.json['id']
+        response = self.app.get(f'/amenities/{amenity_id}')
+        self.assertEqual(response.status_code, 200)
+
+    def test_update_amenity(self):
+        create_response = self.app.post('/amenities', data=json.dumps({
+            'name': 'Gym'
+        }), content_type='application/json')
+        amenity_id = create_response.json['id']
+        response = self.app.put(f'/amenities/{amenity_id}', data=json.dumps({
+            'name': 'Fitness Center'
+        }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['name'], 'Fitness Center')
+
+    def test_delete_amenity(self):
+        create_response = self.app.post('/amenities', data=json.dumps({
+            'name': 'Parking'
+        }), content_type='application/json')
+        amenity_id = create_response.json['id']
+        response = self.app.delete(f'/amenities/{amenity_id}')
+        self.assertEqual(response.status_code, 204)
+
+
 class TestCountryCityEndpoints(unittest.TestCase):
     def setUp(self):
         self.app = app.test_client()
