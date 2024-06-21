@@ -7,6 +7,70 @@ app = Flask(__name__)
 data_manager = DataManager()
 
 
+@app.route('/places', methods=['POST'])
+def create_place():
+    data = request.get_json()
+    required_fields = ['name', 'description', 'address', 'city_id', 'latitude', 'longitude', 'host_id', 'number_of_rooms', 'number_of_bathrooms', 'price_per_night', 'max_guests', 'amenity_ids']
+    for field in required_fields:
+        if field not in data:
+            abort(400, description=f"Missing required field: {field}")
+
+    # Validate city_id
+    if not data_manager.get(data['city_id'], 'City'):
+        abort(400, description="Invalid city_id")
+
+    # Validate amenity_ids
+    for amenity_id in data['amenity_ids']:
+        if not data_manager.get(amenity_id, 'Amenity'):
+            abort(400, description=f"Invalid amenity_id: {amenity_id}")
+
+    place = Place(**data)
+    data_manager.save(place)
+    return jsonify(place.to_dict()), 201
+
+@app.route('/places', methods=['GET'])
+def get_places():
+    places = data_manager.get_all('Place')
+    return jsonify(places), 200
+
+@app.route('/places/<place_id>', methods=['GET'])
+def get_place(place_id):
+    place = data_manager.get(place_id, 'Place')
+    if not place:
+        abort(404, description="Place not found")
+    return jsonify(place), 200
+
+@app.route('/places/<place_id>', methods=['PUT'])
+def update_place(place_id):
+    data = request.get_json()
+    place = data_manager.get(place_id, 'Place')
+    if not place:
+        abort(404, description="Place not found")
+
+    # Validate city_id if provided
+    if 'city_id' in data and not data_manager.get(data['city_id'], 'City'):
+        abort(400, description="Invalid city_id")
+
+    # Validate amenity_ids if provided
+    if 'amenity_ids' in data:
+        for amenity_id in data['amenity_ids']:
+            if not data_manager.get(amenity_id, 'Amenity'):
+                abort(400, description=f"Invalid amenity_id: {amenity_id}")
+
+    place_obj = Place(**place)
+    place_obj.update(data)
+    data_manager.save(place_obj)
+    return jsonify(place_obj.to_dict()), 200
+
+@app.route('/places/<place_id>', methods=['DELETE'])
+def delete_place(place_id):
+    place = data_manager.get(place_id, 'Place')
+    if not place:
+        abort(404, description="Place not found")
+    data_manager.delete(place_id, 'Place')
+    return '', 204
+
+
 @app.route('/amenities', methods=['POST'])
 def create_amenity():
     data = request.get_json()
